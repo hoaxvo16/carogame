@@ -1,0 +1,12 @@
+#box-content {
+  width: 500px;
+  height: 500px;
+  border: 1px solid black;
+  overflow: hidden;
+}
+.box-inside {
+  width: 20px;
+  height: 20px;
+  border: 1px solid black;
+  float: left;
+}
