@@ -18,8 +18,8 @@ class user {
 }
 var rooms = [];
 class room {
-  constructor(name, numuser) {
-    this.name = name;
+  constructor(id, numuser) {
+    this.id = id;
     this.numOfUser = numuser;
     this.userArr = [];
   }
@@ -29,7 +29,8 @@ class room {
   addUser(user) {
     this.userArr.push(user);
   }
-  delUser() {
+  delUser(user) {
+    this.userArr.splice(this.userArr.indexOf(user), 1);
     this.numOfUser--;
   }
   getNumOfUser() {
@@ -40,42 +41,48 @@ console.log("server is running");
 //Có người kết nối
 io.on("connection", function (socket) {
   console.log("Connected with: " + socket.id);
-
+  //gui roomlist cho tat ca user
   io.sockets.emit("server-send-roomlist", rooms);
+  //user join room
   socket.on("client-send-user-name", function (data) {
-    let index = 1;
     let check = false;
     console.log("user " + socket.id + " send: " + data);
+    //neu da co room
     if (rooms.length) {
-      let max = Math.max.apply(Math, rooms.name);
       rooms.forEach(element => {
-        index++;
+        //room chua du 2 nguoi
         if (element.numOfUser < 2) {
           currentUser = new user(data, 2);
           socket.user = currentUser;
           socket.room = element;
-          socket.join(element.name);
+          //join chung phong
+          socket.join(element.id);
           element.addUser(currentUser);
           element.increaseNumOfUser();
-          io.to(socket.room.name).emit(
+          //gui cho user cung room va user moi vao co user moi vao phong
+          io.to(socket.room.id).emit(
             "user-join-room",
-            element.name,
+            element.id,
             element.userArr
           );
           check = true;
         }
       });
+      //tat ca cac phong deu full nguoi
       if (!check) {
+        //lay id room kha dung
+        let id = getRoom(rooms);
+        console.log("new id= " + id);
         currentUser = new user(data, 1);
         socket.user = currentUser;
-        currentRoom = new room(index, 1);
+        currentRoom = new room(id, 1);
         currentRoom.addUser(currentUser);
         rooms.push(currentRoom);
         socket.room = currentRoom;
-        socket.join(currentRoom.name);
-        io.to(socket.room.name).emit(
+        socket.join(currentRoom.id);
+        io.to(socket.room.id).emit(
           "user-join-room",
-          currentRoom.name,
+          currentRoom.id,
           currentRoom.userArr
         );
       }
@@ -85,23 +92,30 @@ io.on("connection", function (socket) {
       currentRoom = new room(1, 1);
       currentRoom.addUser(currentUser);
       rooms.push(currentRoom);
-      socket.join(currentRoom.name);
+      socket.join(currentRoom.id);
       socket.room = currentRoom;
-      io.to(socket.room.name).emit(
+      console.log(currentRoom.id);
+      io.to(socket.room.id).emit(
         "user-join-room",
-        currentRoom.name,
+        currentRoom.id,
         currentRoom.userArr
       );
     }
+    // in ra cac phong
     console.log(socket.adapter.rooms);
   });
-
+  //co nguoi ngat ket noi
   socket.on("disconnect", function () {
     console.log(socket.id + " disconnected");
+    //xoa user
     try {
-      socket.room.delUser();
+      socket.room.delUser(socket.user);
+      console.log(socket.room.userArr);
+      //gui cho user con lai co nguoi roi phong
+      io.to(socket.room.id).emit("user-leave-room", socket.room.userArr);
       if (socket.room.getNumOfUser() === 0) {
         rooms.splice(rooms.indexOf(socket.room), 1);
+        console.log(rooms);
       }
     } catch (error) {}
   });
@@ -110,3 +124,16 @@ io.on("connection", function (socket) {
 app.get("/", function (req, res) {
   res.render("index");
 });
+//lay id room kha dung
+function getRoom(rooms) {
+  let max = 1;
+  for (let i = 0; i < rooms.length; i++) {
+    if (rooms[i].id > max) max = rooms[i].id;
+  }
+  for (let i = 1; i < max; i++) {
+    for (let j = 0; j < rooms.length; j++) {
+      if (rooms[j].id != i) return i;
+    }
+  }
+  return max + 1;
+}
