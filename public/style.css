@@ -8,7 +8,7 @@
   width: 20px;
   height: 20px;
   border: 0.2px solid black;
-  display: inline-block;
+  float: left;
   text-align: center;
   cursor: pointer;
 }
