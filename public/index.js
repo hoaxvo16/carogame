@@ -35,12 +35,14 @@ socket.on("server-send-roomlist", function (data) {
   });
 });
 
-socket.on("user-join-room", function (roomName, user) {
+socket.on("user-join-room", function (roomName, userArr) {
   $("#login-form").hide();
   $("#current-room").show();
   $("#current-room").html(roomName);
-  console.log(user);
-  $("#user-login").append("<div>" + user.name + "</div>");
+  $("#user-login").html("");
+  userArr.forEach(element => {
+    $("#user-login").append("<div>" + element.name + "</div>");
+  });
   $("#box-content").show();
   $("#room-list").hide();
   let width = $("#box-content").width();

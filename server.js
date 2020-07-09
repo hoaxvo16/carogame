@@ -29,7 +29,7 @@ class room {
   addUser(user) {
     this.userArr.push(user);
   }
-  subUser() {
+  delUser() {
     this.numOfUser--;
   }
   getNumOfUser() {
@@ -47,54 +47,63 @@ io.on("connection", function (socket) {
     let check = false;
     console.log("user " + socket.id + " send: " + data);
     if (rooms.length) {
+      let max = Math.max.apply(Math, rooms.name);
       rooms.forEach(element => {
         index++;
         if (element.numOfUser < 2) {
           currentUser = new user(data, 2);
           socket.user = currentUser;
           socket.room = element;
-          socket.join(socket.room);
+          socket.join(element.name);
           element.addUser(currentUser);
           element.increaseNumOfUser();
-          io.to(socket.room).emit("user-join-room", element.name, currentUser);
+          io.to(socket.room.name).emit(
+            "user-join-room",
+            element.name,
+            element.userArr
+          );
           check = true;
         }
       });
       if (!check) {
         currentUser = new user(data, 1);
         socket.user = currentUser;
-        currentRoom = new room("room " + index.toString(), 1);
+        currentRoom = new room(index, 1);
         currentRoom.addUser(currentUser);
         rooms.push(currentRoom);
         socket.room = currentRoom;
-        socket.join(socket.room);
-        io.to(socket.room).emit(
+        socket.join(currentRoom.name);
+        io.to(socket.room.name).emit(
           "user-join-room",
           currentRoom.name,
-          currentUser
+          currentRoom.userArr
         );
       }
     } else {
       currentUser = new user(data, 1);
       socket.user = currentUser;
-      currentRoom = new room("room 1", 1);
+      currentRoom = new room(1, 1);
       currentRoom.addUser(currentUser);
       rooms.push(currentRoom);
+      socket.join(currentRoom.name);
       socket.room = currentRoom;
-      socket.join(socket.room);
-      io.to(socket.room).emit("user-join-room", currentRoom.name, currentUser);
+      io.to(socket.room.name).emit(
+        "user-join-room",
+        currentRoom.name,
+        currentRoom.userArr
+      );
     }
+    console.log(socket.adapter.rooms);
   });
+
   socket.on("disconnect", function () {
     console.log(socket.id + " disconnected");
-    if (rooms.length) {
-      try {
-        socket.room.subUser();
-      } catch (error) {}
-    }
-    if (socket.room.getNumOfUser() === 0) {
-      rooms.splice(rooms.indexOf(socket.room), 1);
-    }
+    try {
+      socket.room.delUser();
+      if (socket.room.getNumOfUser() === 0) {
+        rooms.splice(rooms.indexOf(socket.room), 1);
+      }
+    } catch (error) {}
   });
 });
 //Render file ejs
