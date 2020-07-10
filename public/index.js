@@ -1,6 +1,5 @@
 //kết nối tới server
 var socket = io("http://localhost:3000");
-var roomList;
 //Xử lý những gì client gửi cho server
 $(document).ready(function () {
   $("#login-form").show();
@@ -33,8 +32,8 @@ socket.on("user-join-room", function (roomName, userArr) {
   $("#room-list").hide();
   let width = $("#box-content").width();
   let height = $("#box-content").height();
-  for (let i = 0; i < width / 20; i++) {
-    for (let j = 0; j < height / 20; j++) {
+  for (let i = 0; i < width / 24; i++) {
+    for (let j = 0; j < height / 23; j++) {
       $("#box-content").append(
         "<rect class='box-inside' id=" +
           i.toString() +
@@ -45,8 +44,20 @@ socket.on("user-join-room", function (roomName, userArr) {
     }
   }
   $(".box-inside").click(function (event) {
-    $(this).css("color", "blue");
-    $(this).html("X");
+    let index = 0;
+    for (let i = 0; i < event.target.id.length; i++) {
+      if (event.target.id[i] === "+") {
+        index = i;
+        break;
+      }
+    }
+    console.log(event.target.id);
+    let row = parseInt(event.target.id.substr(0, index));
+    let col = parseInt(
+      event.target.id.substr(index + 1, event.target.id.length)
+    );
+    console.log(row + " " + col);
+    socket.emit("user-play", row, col);
   });
 });
 socket.on("user-leave-room", function (data) {
@@ -54,4 +65,16 @@ socket.on("user-leave-room", function (data) {
   data.forEach(element => {
     $("#user-login").append("<div>" + element.name + "</div>");
   });
+});
+socket.on("server-send-matrix-info", function (userType, row, col) {
+  let idBox = row + "+" + col;
+  console.log(userType);
+  if (userType === 1) {
+    console.log(idBox);
+    document.getElementById(idBox).innerHTML = "X";
+    document.getElementById(idBox).style.color = "blue";
+  } else {
+    document.getElementById(idBox).innerHTML = "O";
+    document.getElementById(idBox).style.color = "red";
+  }
 });

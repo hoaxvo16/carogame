@@ -8,7 +8,7 @@ app.set("views", "./views");
 //require http va socket io
 var server = require("http").Server(app);
 var io = require("socket.io")(server);
-
+var rooms = [];
 server.listen(process.env.PORT || 3000);
 class user {
   constructor(name, type) {
@@ -16,7 +16,6 @@ class user {
     this.type = type;
   }
 }
-var rooms = [];
 class room {
   constructor(id, numuser) {
     this.id = id;
@@ -103,6 +102,14 @@ io.on("connection", function (socket) {
     }
     // in ra cac phong
     console.log(socket.adapter.rooms);
+  });
+  socket.on("user-play", function (row, col) {
+    io.to(socket.room.id).emit(
+      "server-send-matrix-info",
+      socket.user.type,
+      row,
+      col
+    );
   });
   //co nguoi ngat ket noi
   socket.on("disconnect", function () {
