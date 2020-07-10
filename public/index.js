@@ -1,5 +1,6 @@
 //kết nối tới server
 var socket = io("http://localhost:3000");
+var playerTurn = true;
 //Xử lý những gì client gửi cho server
 $(document).ready(function () {
   $("#login-form").show();
@@ -51,13 +52,16 @@ socket.on("user-join-room", function (roomName, userArr) {
         break;
       }
     }
-    console.log(event.target.id);
-    let row = parseInt(event.target.id.substr(0, index));
-    let col = parseInt(
-      event.target.id.substr(index + 1, event.target.id.length)
-    );
-    console.log(row + " " + col);
-    socket.emit("user-play", row, col);
+    if (playerTurn) {
+      console.log(event.target.id);
+      let row = parseInt(event.target.id.substr(0, index));
+      let col = parseInt(
+        event.target.id.substr(index + 1, event.target.id.length)
+      );
+      console.log(row + " " + col);
+      socket.emit("user-play", row, col);
+      playerTurn = false;
+    }
   });
 });
 socket.on("user-leave-room", function (data) {
@@ -66,15 +70,24 @@ socket.on("user-leave-room", function (data) {
     $("#user-login").append("<div>" + element.name + "</div>");
   });
 });
-socket.on("server-send-matrix-info", function (userType, row, col) {
+socket.on("server-send-matrix-info", function (
+  userType,
+  row,
+  col,
+  numOfUserInRoom
+) {
+  console.log(numOfUserInRoom);
   let idBox = row + "+" + col;
   console.log(userType);
-  if (userType === 1) {
+  if (userType === 1 && numOfUserInRoom > 1) {
     console.log(idBox);
     document.getElementById(idBox).innerHTML = "X";
     document.getElementById(idBox).style.color = "blue";
-  } else {
+  } else if (userType === 2 && numOfUserInRoom > 1) {
     document.getElementById(idBox).innerHTML = "O";
     document.getElementById(idBox).style.color = "red";
   }
+});
+socket.on("your-turn", function () {
+  playerTurn = true;
 });

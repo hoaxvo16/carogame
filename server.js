@@ -108,8 +108,10 @@ io.on("connection", function (socket) {
       "server-send-matrix-info",
       socket.user.type,
       row,
-      col
+      col,
+      socket.room.userArr.length
     );
+    socket.to(socket.room.id).emit("your-turn");
   });
   //co nguoi ngat ket noi
   socket.on("disconnect", function () {
