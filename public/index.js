@@ -33,8 +33,8 @@ socket.on("user-join-room", function (roomName, userArr) {
   $("#room-list").hide();
   let width = $("#box-content").width();
   let height = $("#box-content").height();
-  for (let i = 0; i < width / 24; i++) {
-    for (let j = 0; j < height / 23; j++) {
+  for (let i = 0; i < width / 20; i++) {
+    for (let j = 0; j < height / 20; j++) {
       $("#box-content").append(
         "<rect class='box-inside' id=" +
           i.toString() +
