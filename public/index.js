@@ -45,19 +45,11 @@ socket.on("user-join-room", function (roomName, userArr) {
     }
   }
   $(".box-inside").click(function (event) {
-    let index = 0;
-    for (let i = 0; i < event.target.id.length; i++) {
-      if (event.target.id[i] === "+") {
-        index = i;
-        break;
-      }
-    }
+    let index = event.target.id.split("+");
     if (playerTurn) {
       console.log(event.target.id);
-      let row = parseInt(event.target.id.substr(0, index));
-      let col = parseInt(
-        event.target.id.substr(index + 1, event.target.id.length)
-      );
+      let row = parseInt(index[0]);
+      let col = parseInt(index[1]);
       console.log(row + " " + col);
       socket.emit("user-play", row, col);
       playerTurn = false;
