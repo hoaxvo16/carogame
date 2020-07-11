@@ -59,11 +59,7 @@ io.on("connection", function (socket) {
           element.addUser(currentUser);
           element.increaseNumOfUser();
           //gui cho user cung room va user moi vao co user moi vao phong
-          io.to(socket.room.id).emit(
-            "user-join-room",
-            element.id,
-            element.userArr
-          );
+          io.to(socket.room.id).emit("user-join-room", element.id, element.userArr);
           check = true;
         }
       });
@@ -79,11 +75,7 @@ io.on("connection", function (socket) {
         rooms.push(currentRoom);
         socket.room = currentRoom;
         socket.join(currentRoom.id);
-        io.to(socket.room.id).emit(
-          "user-join-room",
-          currentRoom.id,
-          currentRoom.userArr
-        );
+        io.to(socket.room.id).emit("user-join-room", currentRoom.id, currentRoom.userArr);
       }
     } else {
       currentUser = new user(data, 1);
@@ -94,23 +86,13 @@ io.on("connection", function (socket) {
       socket.join(currentRoom.id);
       socket.room = currentRoom;
       console.log(currentRoom.id);
-      io.to(socket.room.id).emit(
-        "user-join-room",
-        currentRoom.id,
-        currentRoom.userArr
-      );
+      io.to(socket.room.id).emit("user-join-room", currentRoom.id, currentRoom.userArr);
     }
     // in ra cac phong
     console.log(socket.adapter.rooms);
   });
   socket.on("user-play", function (row, col) {
-    io.to(socket.room.id).emit(
-      "server-send-matrix-info",
-      socket.user.type,
-      row,
-      col,
-      socket.room.userArr.length
-    );
+    io.to(socket.room.id).emit("server-send-matrix-info", socket.user.type, row, col, socket.room.userArr.length);
     socket.to(socket.room.id).emit("your-turn");
   });
   //co nguoi ngat ket noi

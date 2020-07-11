@@ -35,13 +35,7 @@ socket.on("user-join-room", function (roomName, userArr) {
   let height = $("#box-content").height();
   for (let i = 0; i < width / 20; i++) {
     for (let j = 0; j < height / 20; j++) {
-      $("#box-content").append(
-        "<rect class='box-inside' id=" +
-          i.toString() +
-          "+" +
-          j.toString() +
-          "></rect>"
-      );
+      $("#box-content").append("<rect class='box-inside' id=" + i.toString() + "+" + j.toString() + "></rect>");
     }
   }
   $(".box-inside").click(function (event) {
@@ -62,12 +56,7 @@ socket.on("user-leave-room", function (data) {
     $("#user-login").append("<div>" + element.name + "</div>");
   });
 });
-socket.on("server-send-matrix-info", function (
-  userType,
-  row,
-  col,
-  numOfUserInRoom
-) {
+socket.on("server-send-matrix-info", function (userType, row, col, numOfUserInRoom) {
   console.log(numOfUserInRoom);
   let idBox = row + "+" + col;
   console.log(userType);
