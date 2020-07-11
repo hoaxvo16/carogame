@@ -86,6 +86,8 @@ socket.on("server-send-matrix-info", function (
   } else if (userType === 2 && numOfUserInRoom > 1) {
     document.getElementById(idBox).innerHTML = "O";
     document.getElementById(idBox).style.color = "red";
+  } else {
+    playerTurn = true;
   }
 });
 socket.on("your-turn", function () {
