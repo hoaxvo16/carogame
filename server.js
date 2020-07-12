@@ -9,6 +9,12 @@ app.set("views", "./views");
 var server = require("http").Server(app);
 var io = require("socket.io")(server);
 var rooms = [];
+var grid = [];
+for (let i = 0; i < 32; i++){
+  grid[i]  = [];
+  for (let j = 0; j < 32; j++)
+    grid[i][j] = 0;
+}
 server.listen(process.env.PORT || 3000);
 class user {
   constructor(name, type) {
@@ -92,7 +98,16 @@ io.on("connection", function (socket) {
     console.log(socket.adapter.rooms);
   });
   socket.on("user-play", function (row, col) {
+    if (socket.user.type === 1 && socket.room.userArr.length > 1) {
+      grid[row][col] = 'x'
+    } else if (socket.user.type === 2 && socket.room.userArr.length > 1) {
+      grid[row][col] = 'o'
+    }
     io.to(socket.room.id).emit("server-send-matrix-info", socket.user.type, row, col, socket.room.userArr.length);
+    if (CheckWin(row, col)) {
+      console.log("win detected" + row + col);
+      //socket.emit("youwin");
+    }
     socket.to(socket.room.id).emit("your-turn");
   });
   //co nguoi ngat ket noi
@@ -111,6 +126,39 @@ io.on("connection", function (socket) {
     } catch (error) {}
   });
 });
+
+function CheckWin(row, col) {
+  return (CheckLine(row - 4, col - 4, 1, 1, grid[row][col])
+      || CheckLine(row - 4, col, 1, 0, grid[row][col])
+      || CheckLine(row, col - 4, 0, 1, grid[row][col])
+      || CheckLine(row + 4, col - 4, -1, 1, grid[row][col]))
+}
+function CheckLine(base_row, base_col, inc_row, inc_col, sym){
+  let sym2;
+  if (sym === 'x')
+    sym2 = 'o';
+  else
+    sym2 = 'x';
+  let count = 0;
+  for (let i = 0; i <= 8; i++){
+    if (CheckIndex(base_row, base_col) && grid[base_row][base_col] === sym){
+      count++;
+    } else {
+      count = 0;
+    }
+    if (count === 5 && ((!CheckIndex(base_row + 1, base_col + 1) || grid[base_row + inc_row][base_col + inc_col] != sym2)
+        || (!CheckIndex(base_row - 5*inc_row, base_col - 5*inc_col) || grid[base_row - 5*inc_row][base_col - 5*inc_col] != sym2)))
+      return true;
+    base_row += inc_row;
+    base_col += inc_col;
+  }
+  return false;
+}
+
+function CheckIndex(row, col) {
+    return (row >= 0 && col >= 0 && row <= 31 && col <= 31)
+}
+
 //Render file ejs
 app.get("/", function (req, res) {
   res.render("index");
