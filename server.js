@@ -52,7 +52,8 @@ io.on("connection", function (socket) {
       roomList.forEach(element => {
         //room chua du 2 nguoi
         if (element.numOfUser < 2) {
-          currentUser = new user(data, 2);
+          if (element.userArr[0].type === 1) currentUser = new user(data, 2);
+          else currentUser = new user(data, 1);
           socket.matrix = initMatrix();
           socket.user = currentUser;
           socket.room = element;
@@ -95,19 +96,23 @@ io.on("connection", function (socket) {
     // in ra cac phong
   });
   socket.on("user-play", function (row, col) {
-    socket.matrix[row][col] = socket.user.type;
+    if (socket.user.type === 1) {
+      socket.matrix[row][col] = "x";
+    } else {
+      socket.matrix[row][col] = "o";
+    }
     io.to(socket.room.id).emit("server-send-matrix-info", socket.user.type, row, col, socket.room.userArr.length);
-    let positionLeft = getPosDiagonalLineLeft(row, col);
-    let positionRight = getPosDiagonalLineRight(row, col);
-    console.log(positionLeft);
-    console.log(positionRight);
-    if (
-      checkDiagonalLineLeft(positionLeft[0], positionLeft[1], socket.user.type, socket.matrix) ||
-      checkDiagonalLineRight(positionRight[0], positionRight[1], socket.user.type, socket.matrix) ||
-      checkRowAndColumn(row, col, socket.user.type, socket.matrix)
-    ) {
+    if (checkWin(row, col, socket.matrix)) {
+      console.log("win detected" + row + col);
       socket.emit("you-win");
+      socket.to(socket.room.id).emit("you-lose");
     } else socket.to(socket.room.id).emit("your-turn");
+  });
+  socket.on("player-accept", function () {
+    if (socket.user.type === 1) socket.user.type = 2;
+    else socket.user.type = 1;
+    socket.matrix = initMatrix();
+    socket.to(socket.room.id).emit("other-player-has-accepted");
   });
   //co nguoi ngat ket noi
   socket.on("disconnect", function () {
@@ -145,77 +150,46 @@ function getRoom(roomList) {
 function initMatrix() {
   let matrix = [];
   for (let i = 0; i < 32; i++) {
-    matrix[i] = new Array(10);
+    matrix[i] = [];
     for (let j = 0; j < 32; j++) {
       matrix[i][j] = 0;
     }
   }
   return matrix;
 }
-function getPosDiagonalLineRight(row, col) {
-  let a = row;
-  let b = col;
-  while (b < 32 && a > 0) {
-    if (b === 31) break;
-    a--;
-    b++;
-  }
-  let result = [a, b];
-  return result;
+function checkWin(row, col, grid) {
+  return (
+    checkLine(row - 4, col - 4, 1, 1, grid[row][col], grid) ||
+    checkLine(row - 4, col, 1, 0, grid[row][col], grid) ||
+    checkLine(row, col - 4, 0, 1, grid[row][col], grid) ||
+    checkLine(row + 4, col - 4, -1, 1, grid[row][col], grid)
+  );
 }
-function getPosDiagonalLineLeft(row, col) {
-  let a = row;
-  let b = col;
-  while (b > 0 && a > 0) {
-    a--;
-    b--;
-  }
-  let result = [a, b];
-  return result;
-}
-function checkDiagonalLineLeft(startRow, startCol, value, matrix) {
-  let correct = 0;
-  while (startRow < 32 && startCol < 32) {
-    if (matrix[startRow][startCol] === value) {
-      correct++;
-    } else if (matrix[startRow][startCol] !== value && matrix[startRow][startCol] !== 0) {
-      return false;
+function checkLine(base_row, base_col, inc_row, inc_col, sym, grid) {
+  let sym2;
+  if (sym === "x") sym2 = "o";
+  else sym2 = "x";
+  let count = 0;
+  for (let i = 0; i <= 8; i++) {
+    if (checkIndex(base_row, base_col) && grid[base_row][base_col] === sym) {
+      count++;
+    } else {
+      count = 0;
     }
-    // console.log(correct);
-    if (correct === 5) return true;
-    startRow++;
-    startCol++;
+    if (
+      count === 5 &&
+      (!checkIndex(base_row + 1, base_col + 1) ||
+        grid[base_row + inc_row][base_col + inc_col] != sym2 ||
+        !checkIndex(base_row - 5 * inc_row, base_col - 5 * inc_col) ||
+        grid[base_row - 5 * inc_row][base_col - 5 * inc_col] != sym2)
+    )
+      return true;
+    base_row += inc_row;
+    base_col += inc_col;
   }
   return false;
 }
-function checkDiagonalLineRight(startRow, startCol, value, matrix) {
-  let correct = 0;
-  while (startRow < 32 && startCol >= 0) {
-    if (matrix[startRow][startCol] === value) {
-      correct++;
-    } else if (matrix[startRow][startCol] !== value && matrix[startRow][startCol] !== 0) {
-      return false;
-    }
-    // console.log(correct);
-    if (correct === 5) return true;
-    startRow++;
-    startCol--;
-  }
-  return false;
-}
-function checkRowAndColumn(row, col, value, matrix) {
-  let correctRow = 0;
-  let correctCol = 0;
-  for (let i = 0; i <= col; i++) {
-    if (matrix[row][i] === value) correctRow++;
-    else if (matrix[i][row] !== value && matrix[i][col] !== 0) correctRow = 0;
-    if (correctRow === 5) break;
-  }
-  for (let i = 0; i <= row; i++) {
-    if (matrix[i][col] === value) correctCol++;
-    else if (matrix[i][col] !== value && matrix[i][col] !== 0) correctCol = 0;
-    if (correctCol === 5) break;
-  }
-  if (correctRow === 5 || correctCol === 5) return true;
-  return false;
+
+function checkIndex(row, col) {
+  return row >= 0 && col >= 0 && row <= 31 && col <= 31;
 }

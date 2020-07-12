@@ -31,25 +31,10 @@ socket.on("user-join-room", function (roomName, userArr) {
   });
   $("#box-content").show();
   $("#room-list").hide();
-  let width = $("#box-content").width();
-  let height = $("#box-content").height();
-  for (let i = 0; i < width / 20; i++) {
-    for (let j = 0; j < height / 20; j++) {
-      $("#box-content").append("<rect class='box-inside' id=" + i.toString() + "+" + j.toString() + "></rect>");
-    }
-  }
-  $(".box-inside").click(function (event) {
-    let index = event.target.id.split("+");
-    if (playerTurn) {
-      console.log(event.target.id);
-      let row = parseInt(index[0]);
-      let col = parseInt(index[1]);
-      console.log(row + " " + col);
-      socket.emit("user-play", row, col);
-      playerTurn = false;
-    }
-  });
+  initPlayYard();
+  clickOnBox();
 });
+
 socket.on("user-leave-room", function (data) {
   $("#user-login").html("");
   data.forEach(element => {
@@ -75,5 +60,47 @@ socket.on("your-turn", function () {
   playerTurn = true;
 });
 socket.on("you-win", function () {
-  alert("You Win!!!");
+  let confirmStatus = confirm("You-Win");
+  if (confirmStatus || !confirmStatus) {
+    $("#box-content").html("");
+    initPlayYard();
+    socket.emit("player-accept");
+  }
 });
+socket.on("you-lose", function () {
+  console.log("lose");
+  let confirmStatus = confirm("You-Lose");
+  if (confirmStatus || !confirmStatus) {
+    $("#box-content").html("");
+    initPlayYard();
+    socket.emit("player-accept");
+  }
+});
+socket.on("other-player-has-accepted", function () {
+  console.log("success");
+  playerTurn = true;
+  clickOnBox();
+});
+function initPlayYard() {
+  let width = $("#box-content").width();
+  let height = $("#box-content").height();
+  for (let i = 0; i < width / 20; i++) {
+    for (let j = 0; j < height / 20; j++) {
+      $("#box-content").append("<rect class='box-inside' id=" + i.toString() + "+" + j.toString() + "></rect>");
+    }
+  }
+}
+function clickOnBox() {
+  $(".box-inside").click(function (event) {
+    let index = event.target.id.split("+");
+    console.log("clicked");
+    if (playerTurn) {
+      console.log(event.target.id);
+      let row = parseInt(index[0]);
+      let col = parseInt(index[1]);
+      console.log(row + " " + col);
+      socket.emit("user-play", row, col);
+      playerTurn = false;
+    }
+  });
+}
