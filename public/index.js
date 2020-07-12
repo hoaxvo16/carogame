@@ -74,3 +74,6 @@ socket.on("server-send-matrix-info", function (userType, row, col, numOfUserInRo
 socket.on("your-turn", function () {
   playerTurn = true;
 });
+socket.on("you-win", function () {
+  alert("You Win!!!");
+});
