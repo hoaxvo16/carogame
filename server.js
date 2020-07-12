@@ -9,7 +9,6 @@ app.set("views", "./views");
 var server = require("http").Server(app);
 var io = require("socket.io")(server);
 var roomList = [];
-var matrix = [];
 server.listen(process.env.PORT || 3000);
 class user {
   constructor(name, type) {
@@ -54,6 +53,7 @@ io.on("connection", function (socket) {
         //room chua du 2 nguoi
         if (element.numOfUser < 2) {
           currentUser = new user(data, 2);
+          socket.matrix = initMatrix();
           socket.user = currentUser;
           socket.room = element;
           //join chung phong
@@ -75,6 +75,7 @@ io.on("connection", function (socket) {
         currentRoom = new room(id, 1);
         currentRoom.addUser(currentUser);
         roomList.push(currentRoom);
+        socket.matrix = initMatrix();
         socket.room = currentRoom;
         socket.join(currentRoom.id);
         io.to(socket.room.id).emit("user-join-room", currentRoom.id, currentRoom.userArr);
@@ -85,6 +86,7 @@ io.on("connection", function (socket) {
       currentRoom = new room(1, 1);
       currentRoom.addUser(currentUser);
       roomList.push(currentRoom);
+      socket.matrix = initMatrix();
       socket.join(currentRoom.id);
       socket.room = currentRoom;
       console.log(currentRoom.id);
@@ -93,16 +95,16 @@ io.on("connection", function (socket) {
     // in ra cac phong
   });
   socket.on("user-play", function (row, col) {
-    matrix[row][col] = socket.user.type;
+    socket.matrix[row][col] = socket.user.type;
     io.to(socket.room.id).emit("server-send-matrix-info", socket.user.type, row, col, socket.room.userArr.length);
     let positionLeft = getPosDiagonalLineLeft(row, col);
     let positionRight = getPosDiagonalLineRight(row, col);
     console.log(positionLeft);
     console.log(positionRight);
     if (
-      checkDiagonalLineLeft(positionLeft[0], positionLeft[1], socket.user.type) ||
-      checkDiagonalLineRight(positionRight[0], positionRight[1], socket.user.type) ||
-      checkRowAndColumn(row, col, socket.user.type)
+      checkDiagonalLineLeft(positionLeft[0], positionLeft[1], socket.user.type, socket.matrix) ||
+      checkDiagonalLineRight(positionRight[0], positionRight[1], socket.user.type, socket.matrix) ||
+      checkRowAndColumn(row, col, socket.user.type, socket.matrix)
     ) {
       socket.emit("you-win");
     } else socket.to(socket.room.id).emit("your-turn");
@@ -141,12 +143,14 @@ function getRoom(roomList) {
   return max + 1;
 }
 function initMatrix() {
+  let matrix = [];
   for (let i = 0; i < 32; i++) {
     matrix[i] = new Array(10);
     for (let j = 0; j < 32; j++) {
       matrix[i][j] = 0;
     }
   }
+  return matrix;
 }
 function getPosDiagonalLineRight(row, col) {
   let a = row;
@@ -169,7 +173,7 @@ function getPosDiagonalLineLeft(row, col) {
   let result = [a, b];
   return result;
 }
-function checkDiagonalLineLeft(startRow, startCol, value) {
+function checkDiagonalLineLeft(startRow, startCol, value, matrix) {
   let correct = 0;
   while (startRow < 32 && startCol < 32) {
     if (matrix[startRow][startCol] === value) {
@@ -177,14 +181,14 @@ function checkDiagonalLineLeft(startRow, startCol, value) {
     } else if (matrix[startRow][startCol] !== value && matrix[startRow][startCol] !== 0) {
       return false;
     }
-    console.log(correct);
+    // console.log(correct);
     if (correct === 5) return true;
     startRow++;
     startCol++;
   }
   return false;
 }
-function checkDiagonalLineRight(startRow, startCol, value) {
+function checkDiagonalLineRight(startRow, startCol, value, matrix) {
   let correct = 0;
   while (startRow < 32 && startCol >= 0) {
     if (matrix[startRow][startCol] === value) {
@@ -192,14 +196,14 @@ function checkDiagonalLineRight(startRow, startCol, value) {
     } else if (matrix[startRow][startCol] !== value && matrix[startRow][startCol] !== 0) {
       return false;
     }
-    console.log(correct);
+    // console.log(correct);
     if (correct === 5) return true;
     startRow++;
     startCol--;
   }
   return false;
 }
-function checkRowAndColumn(row, col, value) {
+function checkRowAndColumn(row, col, value, matrix) {
   let correctRow = 0;
   let correctCol = 0;
   for (let i = 0; i <= col; i++) {
