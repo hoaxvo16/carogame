@@ -5,8 +5,12 @@ var playerTurn = true;
 $(document).ready(function () {
   $("#login-form").show();
   $("#room-list").show();
+  $("#status-bar").hide();
   $("#box-content").hide();
   $("#current-room").hide();
+  $("#chat-wrap").hide();
+  $("#log-event").hide();
+  $("#user-login").hide();
   $("#btn").click(function (data) {
     socket.emit("client-send-user-name", $("#username").val());
   });
@@ -17,17 +21,21 @@ socket.on("server-send-roomlist", function (data) {
   //sort danh sach room
   data.sort((a, b) => a.id - b.id);
   data.forEach(element => {
-    $("#room-list").append("<div class='room'>room " + element.id + "</div>");
+    $("#room-list").append("<div class='gallery'><img src='closed-doors.svg'  width='600' height='400'><div class='desc'>ROOM" + element.id + "</div></div>");
   });
 });
 
 socket.on("user-join-room", function (roomName, userArr) {
   $("#login-form").hide();
   $("#current-room").show();
-  $("#current-room").html("room " + roomName);
+  $("#status-bar").show();
+  $("#chat-wrap").show();
+  $("#log-event").show();
+  $("#user-login").show();
+  $("#current-room").html("ROOM " + roomName);
   $("#user-login").html("");
   userArr.forEach(element => {
-    $("#user-login").append("<div>" + element.name + "</div>");
+    $("#user-login").append("<div class='player'>" + element.name + "</div>");
   });
   $("#box-content").show();
   $("#room-list").hide();
@@ -37,8 +45,10 @@ socket.on("user-join-room", function (roomName, userArr) {
 
 socket.on("user-leave-room", function (data) {
   $("#user-login").html("");
+  $("#box-content").html("");
+  initPlayYard();
   data.forEach(element => {
-    $("#user-login").append("<div>" + element.name + "</div>");
+    $("#user-login").append("<div class='player'>" + element.name + "</div>");
   });
 });
 socket.on("server-send-matrix-info", function (userType, row, col, numOfUserInRoom) {
@@ -60,21 +70,17 @@ socket.on("your-turn", function () {
   playerTurn = true;
 });
 socket.on("you-win", function () {
-  let confirmStatus = confirm("You-Win");
-  if (confirmStatus || !confirmStatus) {
-    $("#box-content").html("");
-    initPlayYard();
-    socket.emit("player-accept");
-  }
+  alert("You Win");
+  $("#box-content").html("");
+  initPlayYard();
+  socket.emit("player-accept");
 });
 socket.on("you-lose", function () {
   console.log("lose");
-  let confirmStatus = confirm("You-Lose");
-  if (confirmStatus || !confirmStatus) {
-    $("#box-content").html("");
-    initPlayYard();
-    socket.emit("player-accept");
-  }
+  alert("You Lose");
+  $("#box-content").html("");
+  initPlayYard();
+  socket.emit("player-accept");
 });
 socket.on("other-player-has-accepted", function () {
   console.log("success");
@@ -104,3 +110,15 @@ function clickOnBox() {
     }
   });
 }
+let windowHeight = $(window).height();
+let windowWidth = $(window).width();
+console.log(windowHeight + " " + windowWidth);
+let statusBarHeight = windowHeight - document.getElementById("box-content").width;
+document.getElementById("status-bar").style.height = statusBarHeight + "px";
+document.getElementById("log-event").style.width = (windowWidth - 630) / 4 + "px";
+console.log((windowWidth - 630) / 4);
+document.getElementById("chat-wrap").style.marginLeft = (windowWidth - 630) / 4 + 632 + "px";
+document.getElementById("chat-wrap").style.width = (windowWidth - 630) / 2 + "px";
+document.getElementById("chat-wrap").style.width = (windowWidth - 630) / 2 + "px";
+document.getElementById("user-login").style.width = (windowWidth - 630) / 4 - 2 + "px";
+document.getElementById("user-login").style.marginLeft = (3 * (windowWidth - 630)) / 4 + 633 + "px";

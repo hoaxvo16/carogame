@@ -9,13 +9,21 @@
     <title>Caro game</title>
   </head>
   <body>
-    <div id="login-form">
-      <input type="text" id="username" /> <button id="btn">JOIN</button>
-    </div>
+    <div id="login-form"><input type="text" id="username" style="font-size: 20px;" /> <button id="btn" style="font-size: 20px;">PLAY</button></div>
     <div id="room-list"></div>
-    <div id="current-room"></div>
-    <div id="user-login"></div>
-    <div id="box-content"></div>
+    <div id="status-bar">
+      <div id="current-room"></div>
+      <button id="exit">EXIT</button>
+    </div>
+    <div id="wrapper">
+      <div id="log-event"></div>
+      <div id="box-content"></div>
+      <div id="chat-wrap">
+        <div id="chat-box"></div>
+        <input type="text" id="mess" style="font-size: 20px;" /> <button id="send-mess" style="font-size: 20px;">SEND</button>
+      </div>
+      <div id="user-login"></div>
+    </div>
     <script src="index.js"></script>
   </body>
 </html>
