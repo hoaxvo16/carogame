@@ -2,6 +2,7 @@
 var socket = io("https://carogame-hoavo.herokuapp.com");
 // var socket = io("http://localhost:3000");
 var playerTurn = true;
+var roomID;
 //Xử lý những gì client gửi cho server
 $(document).ready(function () {
   $("#login-form").show();
@@ -41,6 +42,7 @@ socket.on("user-join-room", function (roomName, userArr) {
   $("#box-content").show();
   $("#room-list").hide();
   initPlayYard();
+  roomID = roomName;
   clickOnBox();
 });
 
@@ -70,18 +72,21 @@ socket.on("server-send-matrix-info", function (userType, row, col, numOfUserInRo
 socket.on("your-turn", function () {
   playerTurn = true;
 });
+socket.on("has-checked", function () {
+  playerTurn = true;
+});
 socket.on("you-win", function () {
   alert("You Win");
   $("#box-content").html("");
   initPlayYard();
-  socket.emit("player-accept");
+  socket.emit("player-accept", roomID);
 });
 socket.on("you-lose", function () {
   console.log("lose");
   alert("You Lose");
   $("#box-content").html("");
   initPlayYard();
-  socket.emit("player-accept");
+  socket.emit("player-accept", roomID);
 });
 socket.on("other-player-has-accepted", function () {
   console.log("success");
@@ -106,7 +111,7 @@ function clickOnBox() {
       let row = parseInt(index[0]);
       let col = parseInt(index[1]);
       console.log(row + " " + col);
-      socket.emit("user-play", row, col);
+      socket.emit("user-play", row, col, roomID);
       playerTurn = false;
     }
   });

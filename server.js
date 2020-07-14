@@ -21,6 +21,7 @@ class room {
     this.id = id;
     this.numOfUser = numuser;
     this.userArr = [];
+    this.matrix = [];
   }
   increaseNumOfUser() {
     this.numOfUser++;
@@ -35,10 +36,17 @@ class room {
   getNumOfUser() {
     return this.numOfUser;
   }
+  initMatrix() {
+    for (let i = 0; i < 32; i++) {
+      this.matrix[i] = [];
+      for (let j = 0; j < 32; j++) {
+        this.matrix[i][j] = 0;
+      }
+    }
+  }
 }
 console.log("server is running");
 //Có người kết nối
-initMatrix();
 io.on("connection", function (socket) {
   console.log("Connected with: " + socket.id);
   //gui roomlist cho tat ca user
@@ -54,7 +62,6 @@ io.on("connection", function (socket) {
         if (element.numOfUser < 2) {
           if (element.userArr[0].type === 1) currentUser = new user(data, 2);
           else currentUser = new user(data, 1);
-          socket.matrix = initMatrix();
           socket.user = currentUser;
           socket.room = element;
           //join chung phong
@@ -76,7 +83,7 @@ io.on("connection", function (socket) {
         currentRoom = new room(id, 1);
         currentRoom.addUser(currentUser);
         roomList.push(currentRoom);
-        socket.matrix = initMatrix();
+        roomList[roomList.indexOf(currentRoom)].initMatrix();
         socket.room = currentRoom;
         socket.join(currentRoom.id);
         io.to(socket.room.id).emit("user-join-room", currentRoom.id, currentRoom.userArr);
@@ -87,7 +94,7 @@ io.on("connection", function (socket) {
       currentRoom = new room(1, 1);
       currentRoom.addUser(currentUser);
       roomList.push(currentRoom);
-      socket.matrix = initMatrix();
+      roomList[roomList.indexOf(currentRoom)].initMatrix();
       socket.join(currentRoom.id);
       socket.room = currentRoom;
       console.log(currentRoom.id);
@@ -95,23 +102,31 @@ io.on("connection", function (socket) {
     }
     // in ra cac phong
   });
-  socket.on("user-play", function (row, col) {
-    if (socket.user.type === 1) {
-      socket.matrix[row][col] = "x";
+  socket.on("user-play", function (row, col, id) {
+    let index = getIndexOfRoom(id);
+    if (roomList[index].matrix[row][col] === 0 && roomList[index].numOfUser > 1) {
+      console.log("checked");
+      if (socket.user.type === 1) {
+        roomList[index].matrix[row][col] = "x";
+      } else {
+        roomList[index].matrix[row][col] = "o";
+      }
+      io.to(socket.room.id).emit("server-send-matrix-info", socket.user.type, row, col, socket.room.userArr.length);
+      if (checkWin(row, col, roomList[index].matrix)) {
+        console.log("win detected" + row + col);
+        socket.emit("you-win");
+        socket.to(socket.room.id).emit("you-lose");
+      } else socket.to(socket.room.id).emit("your-turn");
     } else {
-      socket.matrix[row][col] = "o";
+      socket.emit("has-checked");
     }
-    io.to(socket.room.id).emit("server-send-matrix-info", socket.user.type, row, col, socket.room.userArr.length);
-    if (checkWin(row, col, socket.matrix)) {
-      console.log("win detected" + row + col);
-      socket.emit("you-win");
-      socket.to(socket.room.id).emit("you-lose");
-    } else socket.to(socket.room.id).emit("your-turn");
   });
-  socket.on("player-accept", function () {
+  socket.on("player-accept", function (id) {
+    let index = getIndexOfRoom(id);
+    console.log(index);
     if (socket.user.type === 1) socket.user.type = 2;
     else socket.user.type = 1;
-    socket.matrix = initMatrix();
+    roomList[index].initMatrix();
     socket.to(socket.room.id).emit("other-player-has-accepted");
   });
   //co nguoi ngat ket noi
@@ -147,15 +162,12 @@ function getRoom(roomList) {
   }
   return max + 1;
 }
-function initMatrix() {
-  let matrix = [];
-  for (let i = 0; i < 32; i++) {
-    matrix[i] = [];
-    for (let j = 0; j < 32; j++) {
-      matrix[i][j] = 0;
+function getIndexOfRoom(id) {
+  for (let i = 0; i < roomList.length; i++) {
+    if (roomList[i].id === id) {
+      return i;
     }
   }
-  return matrix;
 }
 function checkWin(row, col, grid) {
   return (
