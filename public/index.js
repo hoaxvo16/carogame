@@ -1,5 +1,6 @@
 //kết nối tới server
-var socket = io("http://localhost:3000");
+var socket = io("https://carogame-hoavo.herokuapp.com");
+// var socket = io("http://localhost:3000");
 var playerTurn = true;
 //Xử lý những gì client gửi cho server
 $(document).ready(function () {
