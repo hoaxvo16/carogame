@@ -120,6 +120,7 @@ io.on("connection", function (socket) {
       socket.room = currentRoom;
       io.to(socket.room.id).emit("user-join-room", currentRoom.id, currentRoom.userArr);
     }
+    io.sockets.emit("server-send-roomlist", roomList);
     // in ra cac phong
   });
   socket.on("user-play", function (row, col, id) {
@@ -160,28 +161,34 @@ io.on("connection", function (socket) {
   socket.on("user-not-typing", function () {
     socket.to(socket.room.id).emit("other-player-not-typing");
   });
-  socket.on("player-exit", function () {
+  socket.on("player-exit", function (roomID) {
     try {
-      socket.room.delUser(socket.user);
+      let id = getIndexOfRoom(roomID);
+      roomList[id].delUser(socket.user);
+      socket.leave(roomID);
       //gui cho user con lai co nguoi roi phong
-      io.to(socket.room.id).emit("user-leave-room", socket.room.userArr);
-      if (socket.room.getNumOfUser() === 0) {
-        roomList.splice(roomList.indexOf(socket.room), 1);
+      socket.to(socket.room.id).emit("user-leave-room", roomList[id].userArr);
+      if (roomList[id].getNumOfUser() === 0) {
+        roomList.splice(roomList[id], 1);
       }
     } catch (error) {}
+    io.sockets.emit("server-send-roomlist", roomList);
   });
   //co nguoi ngat ket noi
   socket.on("disconnect", function () {
     console.log(socket.id + " disconnected");
     //xoa user
     try {
-      socket.room.delUser(socket.user);
+      let id = getIndexOfRoom(socket.room.id);
+      roomList[id].delUser(socket.user);
       //gui cho user con lai co nguoi roi phong
-      io.to(socket.room.id).emit("user-leave-room", socket.room.userArr);
-      if (socket.room.getNumOfUser() === 0) {
-        roomList.splice(roomList.indexOf(socket.room), 1);
+      socket.to(socket.room.id).emit("user-leave-room", roomList[id].userArr);
+      if (roomList[id].getNumOfUser() === 0) {
+        roomList.splice(roomList[id], 1);
+        console.log(roomList.length);
       }
     } catch (error) {}
+    io.sockets.emit("server-send-roomlist", roomList);
   });
 });
 //Render file ejs

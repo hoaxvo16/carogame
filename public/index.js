@@ -14,16 +14,16 @@ $(document).ready(function () {
   $("#exit").click(function () {
     $("#root").show();
     $("#wrapper").hide();
-    socket.emit("player-exit");
+    socket.emit("player-exit", roomID);
   });
   sendMess();
   onTyping();
 });
 //Xử lý những gì server gửi cho client
 socket.on("server-send-roomlist", function (data) {
-  console.log(data);
   $("#room-list").html("");
   //sort danh sach room
+  $("#room-list").show();
   data.sort((a, b) => a.id - b.id);
   data.forEach(element => {
     $("#room-list").append("<div class='gallery'><img src='closed-doors.svg'  width='600' height='400'><div class='desc'>ROOM" + element.id + "</div></div>");
