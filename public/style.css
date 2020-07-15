@@ -87,3 +87,13 @@ div.gallery {
   float: left;
   background-color: wheat;
 }
+#x {
+  color: blue;
+}
+#o {
+  color: red;
+}
+.player {
+  font-size: 30px;
+  font-weight: bold;
+}

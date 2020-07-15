@@ -44,6 +44,12 @@ class room {
       }
     }
   }
+  reverseType() {
+    for (let i = 0; i < this.userArr.length; i++) {
+      if (this.userArr[i].type === 1) this.userArr[i].type = 2;
+      else this.userArr[i].type = 1;
+    }
+  }
 }
 console.log("server is running");
 //Có người kết nối
@@ -54,30 +60,44 @@ io.on("connection", function (socket) {
   //user join room
   socket.on("client-send-user-name", function (data) {
     let check = false;
-    console.log("user " + socket.id + " send: " + data);
     //neu da co room
     if (roomList.length) {
-      roomList.forEach(element => {
+      for (let i = 0; i < roomList.length; i++) {
         //room chua du 2 nguoi
-        if (element.numOfUser < 2) {
-          if (element.userArr[0].type === 1) currentUser = new user(data, 2);
-          else currentUser = new user(data, 1);
-          socket.user = currentUser;
-          socket.room = element;
-          //join chung phong
-          socket.join(element.id);
-          element.addUser(currentUser);
-          element.increaseNumOfUser();
-          //gui cho user cung room va user moi vao co user moi vao phong
-          io.to(socket.room.id).emit("user-join-room", element.id, element.userArr);
-          check = true;
+        if (roomList[i].numOfUser < 2) {
+          if (roomList[i].userArr[0].name !== data) {
+            if (roomList[i].userArr[0].type === 1) currentUser = new user(data, 2);
+            else currentUser = new user(data, 1);
+            socket.user = currentUser;
+            socket.room = roomList[i];
+            //join chung phong
+            socket.join(roomList[i].id);
+            roomList[i].addUser(currentUser);
+            roomList[i].increaseNumOfUser();
+            //gui cho user cung room va user moi vao co user moi vao phong
+            io.to(socket.room.id).emit("user-join-room", roomList[i].id, roomList[i].userArr);
+            check = true;
+            break;
+          } else {
+            let id = getRoom(roomList);
+            currentUser = new user(data, 1);
+            socket.user = currentUser;
+            currentRoom = new room(id, 1);
+            currentRoom.addUser(currentUser);
+            roomList.push(currentRoom);
+            roomList[roomList.indexOf(currentRoom)].initMatrix();
+            socket.room = currentRoom;
+            socket.join(currentRoom.id);
+            io.to(socket.room.id).emit("user-join-room", currentRoom.id, currentRoom.userArr);
+            check = true;
+            break;
+          }
         }
-      });
+      }
       //tat ca cac phong deu full nguoi
       if (!check) {
         //lay id room kha dung
         let id = getRoom(roomList);
-        console.log("new id= " + id);
         currentUser = new user(data, 1);
         socket.user = currentUser;
         currentRoom = new room(id, 1);
@@ -97,7 +117,6 @@ io.on("connection", function (socket) {
       roomList[roomList.indexOf(currentRoom)].initMatrix();
       socket.join(currentRoom.id);
       socket.room = currentRoom;
-      console.log(currentRoom.id);
       io.to(socket.room.id).emit("user-join-room", currentRoom.id, currentRoom.userArr);
     }
     // in ra cac phong
@@ -105,7 +124,6 @@ io.on("connection", function (socket) {
   socket.on("user-play", function (row, col, id) {
     let index = getIndexOfRoom(id);
     if (roomList[index].matrix[row][col] === 0 && roomList[index].numOfUser > 1) {
-      console.log("checked");
       if (socket.user.type === 1) {
         roomList[index].matrix[row][col] = "x";
       } else {
@@ -114,8 +132,9 @@ io.on("connection", function (socket) {
       io.to(socket.room.id).emit("server-send-matrix-info", socket.user.type, row, col, socket.room.userArr.length);
       if (checkWin(row, col, roomList[index].matrix)) {
         console.log("win detected" + row + col);
-        socket.emit("you-win");
-        socket.to(socket.room.id).emit("you-lose");
+        roomList[index].reverseType();
+        socket.emit("you-win", roomList[index].userArr);
+        socket.to(socket.room.id).emit("you-lose", roomList[index].userArr);
       } else socket.to(socket.room.id).emit("your-turn");
     } else {
       socket.emit("has-checked");
@@ -123,11 +142,32 @@ io.on("connection", function (socket) {
   });
   socket.on("player-accept", function (id) {
     let index = getIndexOfRoom(id);
-    console.log(index);
-    if (socket.user.type === 1) socket.user.type = 2;
-    else socket.user.type = 1;
+    if (socket.user.type === 1) {
+      socket.user.type = 2;
+    } else {
+      socket.user.type = 1;
+    }
     roomList[index].initMatrix();
     socket.to(socket.room.id).emit("other-player-has-accepted");
+  });
+  socket.on("user-send-mess", function (data) {
+    io.to(socket.room.id).emit("server-send-mess", socket.user.name, data);
+  });
+  socket.on("user-is-typing", function () {
+    socket.to(socket.room.id).emit("other-player-typing", socket.user.name + " is typing");
+  });
+  socket.on("user-not-typing", function () {
+    socket.to(socket.room.id).emit("other-player-not-typing");
+  });
+  socket.on("player-exit", function () {
+    try {
+      socket.room.delUser(socket.user);
+      //gui cho user con lai co nguoi roi phong
+      io.to(socket.room.id).emit("user-leave-room", socket.room.userArr);
+      if (socket.room.getNumOfUser() === 0) {
+        roomList.splice(roomList.indexOf(socket.room), 1);
+      }
+    } catch (error) {}
   });
   //co nguoi ngat ket noi
   socket.on("disconnect", function () {
@@ -135,12 +175,10 @@ io.on("connection", function (socket) {
     //xoa user
     try {
       socket.room.delUser(socket.user);
-      console.log(socket.room.userArr);
       //gui cho user con lai co nguoi roi phong
       io.to(socket.room.id).emit("user-leave-room", socket.room.userArr);
       if (socket.room.getNumOfUser() === 0) {
         roomList.splice(roomList.indexOf(socket.room), 1);
-        console.log(roomList);
       }
     } catch (error) {}
   });
@@ -155,12 +193,16 @@ function getRoom(roomList) {
   for (let i = 0; i < roomList.length; i++) {
     if (roomList[i].id > max) max = roomList[i].id;
   }
-  for (let i = 1; i < max; i++) {
-    for (let j = 0; j < roomList.length; j++) {
-      if (roomList[j].id != i) return i;
-    }
+  for (let i = 1; i <= max; i++) {
+    if (!isExist(roomList, i)) return i;
   }
   return max + 1;
+}
+function isExist(roomList, id) {
+  for (let i = 0; i < roomList.length; i++) {
+    if (roomList[i].id === id) return true;
+  }
+  return false;
 }
 function getIndexOfRoom(id) {
   for (let i = 0; i < roomList.length; i++) {

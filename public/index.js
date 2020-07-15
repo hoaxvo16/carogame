@@ -1,21 +1,22 @@
 //kết nối tới server
 var socket = io("https://carogame-hoavo.herokuapp.com");
-// var socket = io("http://localhost:3000");
 var playerTurn = true;
 var roomID;
 //Xử lý những gì client gửi cho server
 $(document).ready(function () {
-  $("#login-form").show();
-  $("#room-list").show();
-  $("#status-bar").hide();
-  $("#box-content").hide();
-  $("#current-room").hide();
-  $("#chat-wrap").hide();
-  $("#log-event").hide();
-  $("#user-login").hide();
+  $("#root").show();
+  $("#wrapper").hide();
   $("#btn").click(function (data) {
-    socket.emit("client-send-user-name", $("#username").val());
+    if (checkUserName($("#username").val()) === false) alert("Username Empty");
+    else socket.emit("client-send-user-name", $("#username").val());
   });
+  $("#exit").click(function () {
+    $("#root").show();
+    $("#wrapper").hide();
+    socket.emit("player-exit");
+  });
+  sendMess();
+  onTyping();
 });
 //Xử lý những gì server gửi cho client
 socket.on("server-send-roomlist", function (data) {
@@ -26,19 +27,15 @@ socket.on("server-send-roomlist", function (data) {
     $("#room-list").append("<div class='gallery'><img src='closed-doors.svg'  width='600' height='400'><div class='desc'>ROOM" + element.id + "</div></div>");
   });
 });
-
+socket.on("username-taken", function () {
+  alert("username taken!!!");
+});
 socket.on("user-join-room", function (roomName, userArr) {
-  $("#login-form").hide();
-  $("#current-room").show();
-  $("#status-bar").show();
-  $("#chat-wrap").show();
-  $("#log-event").show();
-  $("#user-login").show();
+  $("#root").hide();
+  $("#wrapper").show();
   $("#current-room").html("ROOM " + roomName);
   $("#user-login").html("");
-  userArr.forEach(element => {
-    $("#user-login").append("<div class='player'>" + element.name + "</div>");
-  });
+  setSymbol(userArr);
   $("#box-content").show();
   $("#room-list").hide();
   initPlayYard();
@@ -50,9 +47,7 @@ socket.on("user-leave-room", function (data) {
   $("#user-login").html("");
   $("#box-content").html("");
   initPlayYard();
-  data.forEach(element => {
-    $("#user-login").append("<div class='player'>" + element.name + "</div>");
-  });
+  setSymbol(data);
 });
 socket.on("server-send-matrix-info", function (userType, row, col, numOfUserInRoom) {
   console.log(numOfUserInRoom);
@@ -75,16 +70,20 @@ socket.on("your-turn", function () {
 socket.on("has-checked", function () {
   playerTurn = true;
 });
-socket.on("you-win", function () {
+socket.on("you-win", function (userArr) {
   alert("You Win");
+  $("#user-login").html("");
   $("#box-content").html("");
+  setSymbol(userArr);
   initPlayYard();
   socket.emit("player-accept", roomID);
 });
-socket.on("you-lose", function () {
+socket.on("you-lose", function (userArr) {
   console.log("lose");
   alert("You Lose");
+  $("#user-login").html("");
   $("#box-content").html("");
+  setSymbol(userArr);
   initPlayYard();
   socket.emit("player-accept", roomID);
 });
@@ -92,6 +91,21 @@ socket.on("other-player-has-accepted", function () {
   console.log("success");
   playerTurn = true;
   clickOnBox();
+});
+socket.on("server-send-mess", function (name, mess) {
+  $("#chat-box").append("<div><i style='font-size:14px' class='fa'>&#xf105;</i><b>" + name + "</b>: " + mess + "</div>");
+  var height = 0;
+  $("#chat-box div").each(function (i, value) {
+    height += parseInt($(this).height());
+  });
+  height += "";
+  $("#chat-box").animate({ scrollTop: height });
+});
+socket.on("other-player-typing", function (data) {
+  $("#nofication").html(data);
+});
+socket.on("other-player-not-typing", function () {
+  $("#nofication").html("");
 });
 function initPlayYard() {
   let width = $("#box-content").width();
@@ -102,27 +116,62 @@ function initPlayYard() {
     }
   }
 }
+function setSymbol(userArr) {
+  userArr.forEach(element => {
+    if (element.type === 1) $("#user-login").append("<div class='player'><p id='x'>X:</p>" + element.name + "</div>");
+    else {
+      $("#user-login").append("<div class='player'><p id='o'>O:</p>" + element.name + "</div>");
+    }
+  });
+}
 function clickOnBox() {
   $(".box-inside").click(function (event) {
     let index = event.target.id.split("+");
-    console.log("clicked");
     if (playerTurn) {
-      console.log(event.target.id);
       let row = parseInt(index[0]);
       let col = parseInt(index[1]);
-      console.log(row + " " + col);
       socket.emit("user-play", row, col, roomID);
       playerTurn = false;
     }
   });
 }
+function sendMess() {
+  $("#send-mess").click(function () {
+    socket.emit("user-send-mess", $("#mess").val());
+    $("#mess").val("");
+  });
+
+  $("#mess").bind("enterKey", function (e) {
+    socket.emit("user-send-mess", $("#mess").val());
+    $("#mess").val("");
+  });
+  $("#mess").keyup(function (e) {
+    if (e.keyCode == 13) {
+      $(this).trigger("enterKey");
+    }
+  });
+}
+function onTyping() {
+  $("#mess").focusin(function () {
+    socket.emit("user-is-typing");
+  });
+  $("#mess").focusout(function () {
+    socket.emit("user-not-typing");
+  });
+}
+function checkUserName(val) {
+  if (val === "") return false;
+  for (let i = 0; i < val.length; i++) {
+    if (val.charCodeAt(i) !== 32) return true;
+  }
+  return false;
+}
+
 let windowHeight = $(window).height();
 let windowWidth = $(window).width();
-console.log(windowHeight + " " + windowWidth);
 let statusBarHeight = windowHeight - document.getElementById("box-content").width;
 document.getElementById("status-bar").style.height = statusBarHeight + "px";
 document.getElementById("log-event").style.width = (windowWidth - 630) / 4 + "px";
-console.log((windowWidth - 630) / 4);
 document.getElementById("chat-wrap").style.marginLeft = (windowWidth - 630) / 4 + 632 + "px";
 document.getElementById("chat-wrap").style.width = (windowWidth - 630) / 2 + "px";
 document.getElementById("chat-wrap").style.width = (windowWidth - 630) / 2 + "px";
