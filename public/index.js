@@ -1,5 +1,6 @@
 //kết nối tới server
 var socket = io("https://carogame-hoavo.herokuapp.com");
+// var socket = io("http://localhost:3000");
 var playerTurn = true;
 var roomID;
 //Xử lý những gì client gửi cho server
@@ -20,6 +21,7 @@ $(document).ready(function () {
 });
 //Xử lý những gì server gửi cho client
 socket.on("server-send-roomlist", function (data) {
+  console.log(data);
   $("#room-list").html("");
   //sort danh sach room
   data.sort((a, b) => a.id - b.id);

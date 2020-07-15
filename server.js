@@ -53,6 +53,7 @@ class room {
 }
 console.log("server is running");
 //Có người kết nối
+
 io.on("connection", function (socket) {
   console.log("Connected with: " + socket.id);
   //gui roomlist cho tat ca user
