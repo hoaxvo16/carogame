@@ -63,10 +63,12 @@ socket.on("server-send-matrix-info", function (userType, row, col, numOfUserInRo
     document.getElementById(idBox).innerHTML = "O";
     document.getElementById(idBox).style.color = "red";
   } else {
+    $("#log-event").html("");
     playerTurn = true;
   }
 });
 socket.on("your-turn", function () {
+  $("#log-event").html("Your Turn");
   playerTurn = true;
 });
 socket.on("has-checked", function () {
@@ -76,6 +78,7 @@ socket.on("you-win", function (userArr) {
   alert("You Win");
   $("#user-login").html("");
   $("#box-content").html("");
+  $("#log-event").html("");
   setSymbol(userArr);
   initPlayYard();
   socket.emit("player-accept", roomID);
@@ -85,12 +88,12 @@ socket.on("you-lose", function (userArr) {
   alert("You Lose");
   $("#user-login").html("");
   $("#box-content").html("");
+  $("#log-event").html("");
   setSymbol(userArr);
   initPlayYard();
   socket.emit("player-accept", roomID);
 });
 socket.on("other-player-has-accepted", function () {
-  console.log("success");
   playerTurn = true;
   clickOnBox();
 });
@@ -119,6 +122,7 @@ function initPlayYard() {
   }
 }
 function setSymbol(userArr) {
+  console.log(userArr);
   userArr.forEach(element => {
     if (element.type === 1) $("#user-login").append("<div class='player'><p id='x'>X:</p>" + element.name + "</div>");
     else {
@@ -133,6 +137,7 @@ function clickOnBox() {
       let row = parseInt(index[0]);
       let col = parseInt(index[1]);
       socket.emit("user-play", row, col, roomID);
+      $("#log-event").html("Opponent Turn");
       playerTurn = false;
     }
   });
